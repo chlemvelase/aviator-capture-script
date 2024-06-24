@@ -1,0 +1,109 @@
+# Bubble Multiplier Data Capture
+
+This script captures data from `.bubble-multiplier` elements within `div` elements on a webpage at specified intervals and durations, saving the collected data into a text file.
+
+## How to Use
+
+### Step 1: Open the Webpage
+
+Open the webpage where you want to capture data from `.bubble-multiplier` elements in your browser.
+
+### Step 2: Open the Browser Console
+
+1. **Google Chrome**: 
+   - Right-click on the page and select "Inspect".
+   - Go to the "Console" tab.
+
+2. **Firefox**: 
+   - Right-click on the page and select "Inspect Element".
+   - Go to the "Console" tab.
+
+3. **Microsoft Edge**: 
+   - Right-click on the page and select "Inspect".
+   - Go to the "Console" tab.
+
+4. **Safari**: 
+   - Right-click on the page and select "Inspect Element".
+   - Go to the "Console" tab.
+
+### Step 3: Copy and Paste the Script
+
+Copy the following script and paste it into the browser console:
+
+```javascript
+(function() {
+    // Function to capture data from .bubble-multiplier elements within div elements
+    function captureData(intervalInSeconds = 1, durationInMinutes = 1) {
+        let data = [];
+        let capturedElements = new Set();
+        const interval = intervalInSeconds * 1000; // Convert interval to milliseconds
+        const duration = durationInMinutes * 60 * 1000; // Convert duration to milliseconds
+
+        // Capture function
+        const capture = () => {
+            const timestamp = new Date().toISOString();
+            try {
+                document.querySelectorAll('div .bubble-multiplier').forEach(el => {
+                    if (!capturedElements.has(el)) {
+                        const content = el.textContent || el.innerText;
+                        if (content) {
+                            data.push(`${timestamp}: ${content}`);
+                        } else {
+                            data.push(`${timestamp}: Empty or undefined content`);
+                        }
+                        capturedElements.add(el);
+                    }
+                });
+            } catch (error) {
+                console.error(`Error capturing data at ${timestamp}:`, error);
+                data.push(`${timestamp}: Error capturing data - ${error.message}`);
+            }
+        };
+
+        // MutationObserver to detect changes in the .bubble-multiplier elements within div elements
+        const observer = new MutationObserver((mutationsList, observer) => {
+            capture(); // Capture data whenever a mutation occurs
+        });
+
+        // Observe changes in the specific elements
+        document.querySelectorAll('div .bubble-multiplier').forEach(el => {
+            observer.observe(el, { childList: true, subtree: true });
+        });
+
+        // Start capturing data at regular intervals
+        const intervalId = setInterval(capture, interval);
+
+        // Stop capturing data after the duration and save to a file
+        setTimeout(() => {
+            clearInterval(intervalId);
+            observer.disconnect(); // Stop observing changes
+            try {
+                const blob = new Blob([data.join('\n')], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'bubble-multiplier-data.txt';
+                a.click();
+                URL.revokeObjectURL(url);
+                console.log('Data captured and saved to bubble-multiplier-data.txt');
+            } catch (error) {
+                console.error('Error saving data to file:', error);
+            }
+        }, duration);
+    }
+
+    // Prompt the user for interval and duration
+    const interval = parseFloat(prompt("Enter the time interval in seconds for capturing the data:", "1"));
+    const duration = parseFloat(prompt("Enter the duration in minutes for capturing the data:", "1"));
+
+    // Check if the inputs are valid numbers
+    if (isNaN(interval) || interval <= 0) {
+        console.error("Invalid interval input. Please enter a positive number.");
+    } else if (isNaN(duration) || duration <= 0) {
+        console.error("Invalid duration input. Please enter a positive number.");
+    } else {
+        // Run the captureData function with user inputs
+        captureData(interval, duration);
+    }
+})();
+
